@@ -5,8 +5,14 @@
   "repository": "https://github.com/j2kun/svm-sequential-minimal-optimization",
   "license": "MIT",
   "contributors": [
-    {"name": "Jeremy Kun", "url": "https://jeremykun.com"},
-    {"name": "Irene Papakonstantinou", "url" :"https://generalabstractnonsense.com"}
+    {
+      "name": "Jeremy Kun",
+      "url": "https://jeremykun.com"
+    },
+    {
+      "name": "Irene Papakonstantinou",
+      "url": "https://generalabstractnonsense.com"
+    }
   ],
   "scripts": {
     "babel": "babel --presets es2015 js/main.js -o build/main.bundle.js"
@@ -24,6 +30,7 @@
     "vinyl-source-stream": "^1.1.0"
   },
   "dependencies": {
+    "d3": "^4.7.4",
     "jquery": "^3.1.1"
   }
 }
