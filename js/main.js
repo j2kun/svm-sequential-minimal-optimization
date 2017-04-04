@@ -38,20 +38,6 @@ for (let i=0; i < numPoints; i++) {
   data.push(unlabeledPoint);
 }
 
-let defs = svg.append("defs")
-defs.append("marker")
-    .attr("id", "arrow")
-    .attr("viewBox", "0 -5 10 10")
-    .attr("refX", 5)
-    .attr("refY", 0)
-    .attr("markerWidth", 6)
-    .attr("markerHeight", 6)
-    .attr("orient", "auto");
-
-let markers = svg.select("marker")
-markers.append("path")
-       .attr("d", "M0,-5L10,0L0,5");
-
 let circles = svg.selectAll("circle").data(data).enter().append("circle");
 circles.attr("cx", function (d) { return fromCartesianX(d.x); })
        .attr("cy", function (d) { return fromCartesianY(d.y); })
@@ -75,4 +61,22 @@ normal.attr("x1", function(d) { return fromCartesianX(0); } )
       .attr("y2", function(d) { return fromCartesianY(d.normalVector().y); } )
       .attr("stroke", "black")
       .attr("stroke-width", 2)
-      .attr("marker-end", "url(#arrow)")
+      .attr("marker-end", "url(#arrow)");
+
+let arrowhead = svg.append('g').datum(h).append('path');
+var arrowheadSize = 100;  // in pixels squared, for some reason
+arrowhead.style("fill", "black")
+         .style("cursor", "pointer")
+         .attr('d', d3.symbol()
+                      .size(arrowheadSize) 
+                      .type(d3.symbolTriangle))
+         .attr('transform', function(d) { 
+            let nv = d.normalVector();
+            let vAngle = d.normalAngleFromVertical();
+            let angleDeg = parseInt(vAngle * 180 / Math.PI);
+            let angle = d.normalAngle();
+            let halfLength = Math.sqrt(arrowheadSize) / 2;
+            let arrowhead_x = fromCartesianX(nv.x) - halfLength * Math.cos(angle);
+            let arrowhead_y = fromCartesianY(nv.y) + halfLength * Math.sin(angle);
+            return ("translate(" + arrowhead_x + " " + arrowhead_y + ") " + "rotate(" + angleDeg + ")"); 
+         });

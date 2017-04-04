@@ -49,6 +49,14 @@ class Hyperplane {
     return new Point(this.x, this.y);
   }
 
+  normalAngleFromVertical() {
+    return Math.PI/2 - Math.atan2(this.y, this.x);
+  }
+
+  normalAngle() {
+    return Math.atan2(this.y, this.x);
+  }
+
   spanningVector() {
     // since this demo is in 2d, the hyerplane is just a line. spanningVector
     // outputs a unit vector v such that the line is the set { c*v + this.b } for
