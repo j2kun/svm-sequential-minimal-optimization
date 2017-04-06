@@ -59,9 +59,32 @@ normal.attr("x1", function(d) { return fromCartesianX(0); } )
       .attr("x2", function(d) { return fromCartesianX(d.normalVector().x); } )
       .attr("y1", function(d) { return fromCartesianY(0); } )
       .attr("y2", function(d) { return fromCartesianY(d.normalVector().y); } )
+      .attr("id", "normal")
       .attr("stroke", "black")
-      .attr("stroke-width", 2)
-      .attr("marker-end", "url(#arrow)");
+      .attr("stroke-width", 2);
+
+
+var drag = d3.drag()
+             .on("drag", dragged);
+
+function dragged(d) {
+  console.log('x,y = ' + d3.event.x + ',' +d3.event.y); 
+  d.x = d3.event.x;
+  d.y = d3.event.y;
+  d3.select("#normal").attr("x2", fromCartesianX(d.x))
+                      .attr("y2", fromCartesianY(d.y));
+}
+
+function arrowheadPosition(d) {
+  let nv = d.normalVector();
+  let vAngle = d.normalAngleFromVertical();
+  let angleDeg = parseInt(vAngle * 180 / Math.PI);
+  let angle = d.normalAngle();
+  let halfLength = Math.sqrt(arrowheadSize) / 2;
+  let arrowhead_x = fromCartesianX(nv.x) - halfLength * Math.cos(angle);
+  let arrowhead_y = fromCartesianY(nv.y) + halfLength * Math.sin(angle);
+  return [arrowhead_x, arrowhead_y, angleDeg];
+}
 
 let arrowhead = svg.append('g').datum(h).append('path');
 var arrowheadSize = 100;  // in pixels squared, for some reason
@@ -71,12 +94,7 @@ arrowhead.style("fill", "black")
                       .size(arrowheadSize) 
                       .type(d3.symbolTriangle))
          .attr('transform', function(d) { 
-            let nv = d.normalVector();
-            let vAngle = d.normalAngleFromVertical();
-            let angleDeg = parseInt(vAngle * 180 / Math.PI);
-            let angle = d.normalAngle();
-            let halfLength = Math.sqrt(arrowheadSize) / 2;
-            let arrowhead_x = fromCartesianX(nv.x) - halfLength * Math.cos(angle);
-            let arrowhead_y = fromCartesianY(nv.y) + halfLength * Math.sin(angle);
-            return ("translate(" + arrowhead_x + " " + arrowhead_y + ") " + "rotate(" + angleDeg + ")"); 
-         });
+            let posn = arrowheadPosition(d);
+            return ("translate(" + posn[0] + " " + posn[1] + ") " + "rotate(" + posn[2] + ")"); 
+         })
+         .call(drag);
