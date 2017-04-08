@@ -64,17 +64,6 @@ normal.attr("x1", function(d) { return fromCartesianX(0); } )
       .attr("stroke-width", 2);
 
 
-var drag = d3.drag()
-             .on("drag", dragged);
-
-function dragged(d) {
-  console.log('x,y = ' + d3.event.x + ',' +d3.event.y); 
-  d.x = d3.event.x;
-  d.y = d3.event.y;
-  d3.select("#normal").attr("x2", fromCartesianX(d.x))
-                      .attr("y2", fromCartesianY(d.y));
-}
-
 function arrowheadPosition(d) {
   let nv = d.normalVector();
   let vAngle = d.normalAngleFromVertical();
@@ -86,15 +75,29 @@ function arrowheadPosition(d) {
   return [arrowhead_x, arrowhead_y, angleDeg];
 }
 
+var drag = d3.drag().on("drag", dragged);
 let arrowhead = svg.append('g').datum(h).append('path');
 var arrowheadSize = 100;  // in pixels squared, for some reason
+
+function dragged(d) {
+  console.log('x,y = ' + d3.event.x + ',' +d3.event.y);
+  d.x = d3.event.x;
+  d.y = d3.event.y;
+  d3.select("#normal").attr("x2", fromCartesianX(d.x))
+                      .attr("y2", fromCartesianY(d.y));
+  arrowhead.attr('transform', function(d) {
+    let posn = arrowheadPosition(d);
+    return ("translate(" + posn[0] + " " + posn[1] + ") " + "rotate(" + posn[2] + ")");
+  })
+}
+
 arrowhead.style("fill", "black")
          .style("cursor", "pointer")
          .attr('d', d3.symbol()
-                      .size(arrowheadSize) 
+                      .size(arrowheadSize)
                       .type(d3.symbolTriangle))
-         .attr('transform', function(d) { 
+         .attr('transform', function(d) {
             let posn = arrowheadPosition(d);
-            return ("translate(" + posn[0] + " " + posn[1] + ") " + "rotate(" + posn[2] + ")"); 
+            return ("translate(" + posn[0] + " " + posn[1] + ") " + "rotate(" + posn[2] + ")");
          })
          .call(drag);
