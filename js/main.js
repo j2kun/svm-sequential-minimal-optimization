@@ -20,6 +20,7 @@ let h = new Hyperplane(unit, unit * 3 / 2, 0);
 let numPoints = 100;
 let data = [];
 
+// Generate some points on each side of the hyperplane, but not too close
 for (let i=0; i < numPoints; i++) {
   let unlabeledPoint = new Point(0, 0);
   while (Math.abs(innerProduct(unlabeledPoint, h.normalized())) < 2*unit) {
@@ -44,15 +45,19 @@ circles.attr("cx", function (d) { return fromCartesianX(d.x); })
        .attr("r", function (d) { return d.radius; })
        .attr("fill", function (d) { return d.labelToColor[d.label]; })
        .attr("stroke", function (d) { return d.labelToStrokeColor[d.label]; })
-       .attr("stroke-width", 2)
+       .attr("stroke-width", 2);
 
-let line = svg.append("line").datum(h);
-line.attr("x1", function(d) { return fromCartesianX(d.spanningX1(width, height)); } )
-    .attr("x2", function(d) { return fromCartesianX(d.spanningX2(width, height)); } )
-    .attr("y1", function(d) { return fromCartesianY(d.spanningY1(width, height)); } )
-    .attr("y2", function(d) { return fromCartesianY(d.spanningY2(width, height)); } )
-    .attr("stroke", "black")
-    .attr("stroke-width", 2)
+let spanning = svg.append("line").datum(h);
+spanning.attr("stroke", "black")
+        .attr("id", "spanning")
+        .attr("stroke-width", 2);
+
+function setSpanningPosition(d) {
+  spanning.attr("x1", function(d) { return fromCartesianX(d.spanningX1(width, height)); } )
+          .attr("x2", function(d) { return fromCartesianX(d.spanningX2(width, height)); } )
+          .attr("y1", function(d) { return fromCartesianY(d.spanningY1(width, height)); } )
+          .attr("y2", function(d) { return fromCartesianY(d.spanningY2(width, height)); } );
+}
 
 let normal = svg.append("line").datum(h);
 normal.attr("x1", function(d) { return fromCartesianX(0); } )
@@ -63,7 +68,16 @@ normal.attr("x1", function(d) { return fromCartesianX(0); } )
       .attr("stroke", "black")
       .attr("stroke-width", 2);
 
+function setNormalPosition() {
+  d3.select("#normal").attr("x2", function(d) { return fromCartesianX(d.x); })
+                      .attr("y2", function(d) { return fromCartesianY(d.y); });
+}
 
+let arrowhead = svg.append('g').datum(h).append('path');
+var arrowheadSize = 100;  // in pixels squared, for some reason
+
+// Translate and rotate the arrowhead position based on the end of the
+// normal vector
 function arrowheadPosition(d) {
   let nv = d.normalVector();
   let vAngle = d.normalAngleFromVertical();
@@ -75,16 +89,7 @@ function arrowheadPosition(d) {
   return [arrowhead_x, arrowhead_y, angleDeg];
 }
 
-var drag = d3.drag().on("drag", dragged);
-let arrowhead = svg.append('g').datum(h).append('path');
-var arrowheadSize = 100;  // in pixels squared, for some reason
-
-function dragged(d) {
-  console.log('x,y = ' + d3.event.x + ',' +d3.event.y);
-  d.x = d3.event.x;
-  d.y = d3.event.y;
-  d3.select("#normal").attr("x2", fromCartesianX(d.x))
-                      .attr("y2", fromCartesianY(d.y));
+function setArrowheadPosition() {
   arrowhead.attr('transform', function(d) {
     let posn = arrowheadPosition(d);
     return ("translate(" + posn[0] + " " + posn[1] + ") " + "rotate(" + posn[2] + ")");
@@ -96,8 +101,17 @@ arrowhead.style("fill", "black")
          .attr('d', d3.symbol()
                       .size(arrowheadSize)
                       .type(d3.symbolTriangle))
-         .attr('transform', function(d) {
-            let posn = arrowheadPosition(d);
-            return ("translate(" + posn[0] + " " + posn[1] + ") " + "rotate(" + posn[2] + ")");
-         })
-         .call(drag);
+
+function dragged(d) {
+  d.x += d3.event.dx;
+  d.y -= d3.event.dy;
+  setNormalPosition();
+  setArrowheadPosition();
+  setSpanningPosition();
+}
+
+arrowhead.call(d3.drag().on("drag", dragged));
+
+setNormalPosition();
+setArrowheadPosition();
+setSpanningPosition();
