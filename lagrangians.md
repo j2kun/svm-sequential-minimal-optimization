@@ -53,10 +53,10 @@ The result of this trick is that, if you can find the zeros of $\nabla L$, then 
 
 A central theorem about the Lagrangian, and one that guarantees its properties in more generic settings, is that it serves as a *dual* formulation of the original optimization problem. In general, you start with a problem that is a *minimization* problem for some function, say $f(\vec x)$, with some constraints. This problem is often called the *primal* to give it a name that's more distinguished than "the original/starting problem." 
 
-Then the *dual* formulation is a way to turn the primal minimization problem into a *maximization* problem for some other function $g(\vec y)$ (usually with different input variables and constraints). A *weak duality theorem* says that the process of going from $f$ to $g$ ensures that 
+Then the *dual* formulation is a way to turn the primal minimization problem into a *maximization* problem for some other function $d(\vec y)$ (usually with different input variables and constraints). A *weak duality theorem* says that the process of going from $f$ to $d$ ensures that 
 
 $$
-\max_{\vec y} g(\vec y) \leq \min_{\vec x} f(\vec x)
+\max_{\vec y} d(\vec y) \leq \min_{\vec x} f(\vec x)
 $$
 
 In other words, weak duality means the solution to the dual is a lower bound on the solution to the primal. This is useful because if the dual is easier to solve, it gives you an estimate (hopefully a good one) on the solution for the primal problem. 
@@ -69,7 +69,7 @@ $$
 \max_{\vec \lambda} \min_{\vec x} L(\vec x, \vec \lambda) = \min_{\vec x} f(\vec x)
 $$
 
-In other words, the dual function $g$ is actually a function that knows about the *worst* possible $\vec x$ for any given $\vec \lambda$, and you have to find the $\vec \lambda$ that is best in spite of this. [These lecture notes](https://people.eecs.berkeley.edu/~klein/papers/lagrange-multipliers.pdf) give a fantastic explanation of why this is the case. In fact, the right hand side of the equation above is equal to 
+In other words, the dual function $d$ is actually a function that knows about the *worst* possible $\vec x$ for any given $\vec \lambda$, and you have to find the $\vec \lambda$ that is best in spite of this. [These lecture notes](https://people.eecs.berkeley.edu/~klein/papers/lagrange-multipliers.pdf) give a fantastic explanation of why this is the case. In fact, the right hand side of the equation above is equal to 
 
 $$ 
 \min_{\vec x} f(\vec x) = \min_{\vec x} \max_{\vec \lambda} L(\vec x, \vec \lambda),
@@ -93,18 +93,18 @@ $$
 For SVM the variables are $\vec w, b$, so we'll use those instead of $\vec x$. The KKT theorem has a [bunch of conditions](https://en.wikipedia.org/wiki/Karush%E2%80%93Kuhn%E2%80%93Tucker_conditions#Regularity_conditions_.28or_constraint_qualifications.29) for the most general setting possible. For SVM, it can be reduced to saying that if $f(\vec w, b)$ is a quadratic polynomial, and the constraints are all linear inequalities, then the "generalized Lagrangian," defined as
 
 $$
-L(\vec w, b) = f(\vec w, b) + \sum_{i=1}^m \alpha_i g_i(\vec w, b),
+L(\vec w, b, \vec \alpha) = f(\vec w, b) + \sum_{i=1}^m \alpha_i g_i(\vec w, b),
 $$
 
 satisfies an identical duality theorem:
 
-**Theorem:** Let $L(\vec w, b, \vec \alpha)$ be the generalized Lagrangian for the problem defined above. Then the dual problem is to maximize $g(\vec \alpha) = \min_{\vec w, b} L(\vec w, b, \vec \alpha)$, subject to the constraints that each $\alpha_i \geq 0$. The theorem is that 
+**Theorem:** Let $L(\vec w, b, \vec \alpha)$ be the generalized Lagrangian for the problem defined above. Then the dual problem is to maximize $d(\vec \alpha) = \min_{\vec w, b} L(\vec w, b, \vec \alpha)$, subject to the constraints that each $\alpha_i \geq 0$. The theorem is that 
 
 $$
-\max_{\vec \alpha \geq 0} g(\vec \alpha) = \min_{\text{feasible } \vec x} f(\vec x)
+\max_{\vec \alpha \geq 0} d(\vec \alpha) = \min_{\text{feasible } \vec x} f(\vec x)
 $$
 
-Here by "feasible" I mean that $x$ satisfies $g_i(x) \leq 0$ for all $i$.
+Here by "feasible" I mean that $x$ satisfies the constraints $g_i(x) \leq 0$ for all $i$.
 
 This formulation is almost identical to the case of linear equalities, except that now we require the dual variables to be nonnegative. Unfortunately, the proof of the theorem is far beyond the scope of this blog [also I have never seen it and I imagine it's very hard].
 
