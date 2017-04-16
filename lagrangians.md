@@ -75,7 +75,11 @@ $$
 \min_{\vec x} f(\vec x) = \min_{\vec x} \max_{\vec \lambda} L(\vec x, \vec \lambda),
 $$
 
-because if $x$ does not satisfy the constraints of all the $g_i$, you can pick $\lambda_i$'s in such a way that make the max of $L$ infinitely large (i.e. there is no max because the problem is unbounded).
+because if $x$ does not satisfy the constraints of all the $g_i$, you can pick $\lambda_i$'s in such a way that make the max of $L$ infinitely large (i.e. there is no max because the problem is unbounded). In particular, this says that the Lagrangian function encodes both the primal and the dual problem, and switching back and forth is just a matter of swapping the order of max and min
+
+$$
+\max_{\vec \lambda} \min_{\vec x} L(\vec x, \vec \lambda) = \min_{\vec x} \max_{\vec \lambda} L(\vec x, \vec \lambda)
+$$
 
 ## The Karush-Kuhn-Tucker theorem
 
