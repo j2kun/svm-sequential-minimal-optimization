@@ -114,6 +114,96 @@ This formulation is almost identical to the case of linear equalities, except th
 
 ## The nitty gritty for SVM
 
-Now let's compute the dual problem for SVM.
+Now let's compute the dual problem for SVM, and see how enforcing $\nabla L = 0$ gives us the representation in the Platt paper.
+
+The problem is 
+
+$$
+\min_{w, b} \frac{1}{2} \| \vec w \|^2
+$$
+
+Subject to the constraints that all $m$ training points $x_1, \dots, x_m$ with training labels $y_1, \dots, y_m$ satisfy
+
+$$
+y_i( \vec w \cdot  \vec x_i) \geq 1
+$$
+
+The Lagrangian is
+
+$$
+\begin{aligned}
+L(\vec w, b, \vec \alpha) 
+    &= \frac{1}{2} \| \vec w \|^2 + \sum_{j=1}^m \alpha_j(1-y_j(\vec w \cdot \vec x_j + b)) \\ 
+    &= \frac{1}{2} \| \vec w \|^2 + \sum_{j=1}^m \alpha_j - \sum_{j=1}^m \alpha_j y_j(\vec w \cdot \vec x_j + b))
+\end{aligned}
+$$
+
+We can compute $\nabla L$ for each variable. First, the individual components $w_i$ of $\vec w$.
+
+$$
+\frac{\partial L}{\partial w_i} = w_i - \sum_{j=1}^m \alpha_j y_j x_{j,i}
+$$ 
+
+Note that $x_{i,j}$ is the $i$-th component of the $j$-th training point $\vec x_j$, since this is the only part of the expression $\vec w \cdot \vec x_j$ that involves $w_i$.
+
+Setting all these equal to zero means we require $\vec w = \sum_{j=1}^m \alpha_j y_j x_j$. This is interesting! The optimality criterion, that the gradient of the Lagrangian must be zero, actually shows us how to write the optimal solution $\vec w$ in terms of the Lagrange multipliers $\alpha_j$ and the training data/labels.
+
+You can also recover $b$ using a little trick. Suppose you found the optimal $\vec w$ (which can be expressed in terms of the Lagrange multipliers). Then since we have set this functional margin (the curbs of the street) to $1$ and $-1$ when we set up the problem, we can let $x_+$ be some point for which $\vec w \cdot \vec x_+ + b = +1$ and $x_-$ for $\vec w \cdot \vec x_- + b = -1$. We can equate these two (with a sign flip):
+
+$$
+\vec w \cdot \vec x_+ + b = 1 = -(\vec w \cdot \vec x_- + b)
+$$ 
+
+Solving for $b$, we get
+
+$$
+b = -\frac{\vec w \cdot \vec x_- + \vec w \cdot \vec x_+}{2}
+$$
+
+This way we can express both the optimal $\vec w$ and $b$ just in terms of the input data and the Lagrange multipliers.
+
+Now we continue computing the gradient of the Lagrangian. For the term involving $b$:
+
+$$
+\frac{\partial L}{\partial b} = -\sum_{j=1}^m \alpha_j y_j = 0
+$$
+
+And for the lagrange multipliers:
+
+$$
+\frac{\partial L}{\partial \alpha_j} = 1 - y_j(\vec w \cdot \vec x_j + b)
+$$
+
+**Confusion!** This is one part I'm not quite sure about. We'd expect that we have to set the entire gradient equal to zero, but that means that all the constraints are not just satisfied, but equal! This can't be right, because it says that all the points have to lie on the "curb" of the street, which doesn't make any sense. 
+
+Looking at the [Wikipedia page for KKT](https://en.wikipedia.org/wiki/Karush%E2%80%93Kuhn%E2%80%93Tucker_conditions#Necessary_conditions), it says that we don't actually need tohe partial derivatives w.r.t. $\alpha_j$ to be zero (only the ones for equality constraints, which we don't have), but rather we require that
+
+$$
+\frac{\partial L}{\partial \alpha_j} = 1 - y_j(\vec w \cdot \vec x_j + b) \leq 0
+$$
+
+i.e., just that the constraints are satisfied. Maybe this is just where the connection between the classical Lagrangian and the KKT-style Lagrangian break down, because you don't set the entire gradient to zero?
+
+Trudging along none the wiser...
+
+The final condition of the KKT theorem says that one needs to have both feasibility of the dual:
+
+$$
+\alpha_j \geq 0 \textup{ for all } j
+$$
+
+And another condition called "complementary slackness," which says that for each pair of Lagrange multiplier and constraint, either the constraint must be exactly the limit (equal to zero, not strictly less than), or else the Lagrange multiplier must be zero. This translates to that data point not being on the curb, and so that data point is not used to compute $\vec w$ (it's not a support vector).
+
+$$
+\alpha_j (1 - y_j(\vec w \cdot \vec x_j + b)) = 0 \textup{ for all } $j = 1, \dots, m$
+$$
+
+This last constraint could use some English and geometric pictures to help clarify it. First, let's write down the three constraints having to do with feasibility and complementary slackness:
+
+ 1. $\alpha_j (\textup{constraint}_j) = 0$
+ 2. \textup{constraint}_j \leq 0
+ 3. \alpha_j \geq 0
+
+(1) says that one of the two things must be zero. If the constraint is zero, then (3) says $\alpha_j$ need not be zero, and it could be bigger than zero ($x_j$ is a support vector). If on the other hand the constraint is not tight (equal to zero), then $\alpha_j$ must be zero ($x_j$ is not a support vector). 
 
 
