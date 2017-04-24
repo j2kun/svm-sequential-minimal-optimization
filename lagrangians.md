@@ -40,13 +40,13 @@ $$
 And the objective for the dual is this nasty beast
 
 $$
-d(\mathbf \alpha) = \inf_{\mathbf x} L(\mathbf x, \mathbf \alpha)
+d(\mathbf{\alpha}) = \inf_{\mathbf x} L(\mathbf x, \mathbf{\alpha})
 $$
 
-where $L(\mathbf x, \mathbf alpha)$ is the generalized Lagrangian (which is simpler in this writeup because we're not including any equality constraints), defined as:
+where $L(\mathbf x, \mathbf{\alpha})$ is the generalized Lagrangian (which is simpler in this writeup because we're not including any equality constraints), defined as:
 
 $$
-L(\mathbf x, \mathbf \alpha) = f(\mathbf x) + \sum_{i=1}^m \alpha_i g_i(\mathbf x),
+L(\mathbf x, \mathbf{\alpha}) = f(\mathbf x) + \sum_{i=1}^m \alpha_i g_i(\mathbf x),
 $$
 
 While a proper discussion of primality and duality could fill a book, we'll have to leave it at that. If you want to journey deeper into this rabbit hole, [these notes](https://people.eecs.berkeley.edu/~klein/papers/lagrange-multipliers.pdf) give a great introduction from the perspective of the classical Lagrangian, without any scarring.
@@ -78,7 +78,7 @@ The generalized Lagrangian is
 
 $$
 \begin{aligned}
-L(\mathbf w, b, \mathbf \alpha) 
+L(\mathbf w, b, \mathbf{\alpha}) 
     &= \frac{1}{2} \| \mathbf w \|^2 + \sum_{j=1}^m \alpha_j(1-y_j(\mathbf w \cdot \mathbf x_j + b)) \\ 
     &= \frac{1}{2} \| \mathbf w \|^2 + \sum_{j=1}^m \alpha_j - \sum_{j=1}^m \alpha_j y_j(\mathbf w \cdot \mathbf x_j + b))
 \end{aligned}
