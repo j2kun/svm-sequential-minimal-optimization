@@ -40,13 +40,13 @@ $$
 And the objective for the dual is this nasty beast
 
 $$
-d(\mathbf \alpha) = \inf_{\mathbf x} L(\mathbf x, \mathbf \alpha)
+d(\mathbf{\alpha}) = \inf_{\mathbf x} L(\mathbf x, \mathbf{\alpha})
 $$
 
-where $L(\mathbf x, \mathbf alpha)$ is the generalized Lagrangian (which is simpler in this writeup because we're not including any equality constraints), defined as:
+where $L(\mathbf x, \mathbf{\alpha})$ is the generalized Lagrangian (which is simpler in this writeup because we're not including any equality constraints), defined as:
 
 $$
-L(\mathbf x, \mathbf \alpha) = f(\mathbf x) + \sum_{i=1}^m \alpha_i g_i(\mathbf x),
+L(\mathbf x, \mathbf{\alpha}) = f(\mathbf x) + \sum_{i=1}^m \alpha_i g_i(\mathbf x),
 $$
 
 While a proper discussion of primality and duality could fill a book, we'll have to leave it at that. If you want to journey deeper into this rabbit hole, [these notes](https://people.eecs.berkeley.edu/~klein/papers/lagrange-multipliers.pdf) give a great introduction from the perspective of the classical Lagrangian, without any scarring.
@@ -78,7 +78,7 @@ The generalized Lagrangian is
 
 $$
 \begin{aligned}
-L(\mathbf w, b, \mathbf \alpha) 
+L(\mathbf w, b, \mathbf{\alpha}) 
     &= \frac{1}{2} \| \mathbf w \|^2 + \sum_{j=1}^m \alpha_j(1-y_j(\mathbf w \cdot \mathbf x_j + b)) \\ 
     &= \frac{1}{2} \| \mathbf w \|^2 + \sum_{j=1}^m \alpha_j - \sum_{j=1}^m \alpha_j y_j(\mathbf w \cdot \mathbf x_j + b))
 \end{aligned}
@@ -94,7 +94,7 @@ Note that $x_{i,j}$ is the $i$-th component of the $j$-th training point $\mathb
 
 Setting all these equal to zero means we require $\mathbf w = \sum_{j=1}^m \alpha_j y_j x_j$. This is interesting! The optimality criterion, that the gradient of the Lagrangian must be zero, actually shows us how to write the optimal solution $\mathbf w$ in terms of the Lagrange multipliers $\alpha_j$ and the training data/labels.
 
-You can also recover $b$ using a little trick. Suppose you found the optimal $\mathbf w$ (which can be expressed in terms of the Lagrange multipliers). Then since we have set this functional margin (the curbs of the street) to $1$ and $-1$ when we set up the problem, we can let $x_+$ be some point for which $\mathbf w \cdot \mathbf x_+ + b = +1$ and $x_-$ for $\mathbf w \cdot \mathbf x_- + b = -1$. We can equate these two (with a sign flip):
+You can also recover $b$ using a little trick. Suppose you found the optimal $\mathbf w$ (which can be expressed in terms of the Lagrange multipliers). Then since we have set this functional margin (the curbs of the street) to $1$ and $-1$ when we set up the problem, we can let $\mathbf{x}_+$ be some point for which $\mathbf w \cdot \mathbf x_+ + b = +1$ and $\mathbf{x}_-$ for $\mathbf w \cdot \mathbf x_- + b = -1$. We can equate these two (with a sign flip):
 
 $$
 \mathbf w \cdot \mathbf x_+ + b = 1 = -(\mathbf w \cdot \mathbf x_- + b)
