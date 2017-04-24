@@ -9,8 +9,8 @@ We are in luck. The SVM problem can be expressed as a so-called "convex quadrati
 **Theorem [Karush 1939, Kuhn-Tucker 1951]:** Suppose you have an optimization problem in $\mathbb{R}^n$ of the following form:
 
 $$
-\min f(\vec x) \\ 
-\text{subject to } g_i(\vec x) \leq 0, i = 1, \dots, m
+\min f(\mathbf x) \\ 
+\text{subject to } g_i(\mathbf x) \leq 0, i = 1, \dots, m
 $$
 
 Where $f$ is a differentiable function of the input variables $\mathbf{x}$ and $g_1, \dots, g_m$ are affine (degree-1 polynomials). Suppose $\mathbf{z}$ is a local minmum of $f$. Then there exist constants (called KKT or Lagrange multipliers) $\alpha_1, \dots, \alpha_m$ such that the following are true:
@@ -25,8 +25,8 @@ We'll discuss momentarily how to interpret these conditions, but first a few asi
 Now to interpret the four conditions. The difficulty in this part of the discussion is in the notion of primal/dual problems. The "original" optimization problem is often called the "primal" problem. This is 
 
 $$
-\min f(\vec x) \\ 
-\text{subject to } g_i(\vec x) \leq 0, i = 1, \dots, m
+\min f(\mathbf x) \\ 
+\text{subject to } g_i(\mathbf x) \leq 0, i = 1, \dots, m
 $$
 
 However, it's often useful for one to define a corresponding "dual" optimization problem, which is a _maximization_ problem (whose objective and constraints are related to the primal in a standard, but tedious-to-write-down way). In general, this dual maximization problem has the guarantee that it's optimal solution is a lower bound on the optimal solution for the primal. This can be useful in many settings. In the most pleasant settings, including SVM, you get an even stronger guarantee, that the optimal solution for the primal and dual problems are _equal_. They are two equivalent perspectives on the same problem.
@@ -34,19 +34,19 @@ However, it's often useful for one to define a corresponding "dual" optimization
 The KKT theorem actually implicitly defines a dual problem (which can only possibly be clear to the reader in the case they're familiar with duals and Lagrangians already). This dual problem has variables $\alpha_1, \dots, \alpha_m$, one for each constraint of the primal. In this case, the constriants are simply nonnegativity of the variables
 
 $$
-\alpha_j \geq 0 \textup{ for all } j
+\alpha_j \geq 0 \text{ for all } j
 $$
 
 And the objective for the dual is this nasty beast
 
 $$
-d(\vec \alpha) = \inf_{\vec x} L(\vec x, \vec \alpha)
+d(\mathbf \alpha) = \inf_{\mathbf x} L(\mathbf x, \mathbf \alpha)
 $$
 
-where $L(\vec x, \vec alpha)$ is the generalized Lagrangian (which is simpler in this writeup because we're not including any equality constraints), defined as:
+where $L(\mathbf x, \mathbf alpha)$ is the generalized Lagrangian (which is simpler in this writeup because we're not including any equality constraints), defined as:
 
 $$
-L(\vec x, \vec \alpha) = f(\vec x) + \sum_{i=1}^m \alpha_i g_i(\vec x),
+L(\mathbf x, \mathbf \alpha) = f(\mathbf x) + \sum_{i=1}^m \alpha_i g_i(\mathbf x),
 $$
 
 While a proper discussion of primality and duality could fill a book, we'll have to leave it at that. If you want to journey deeper into this rabbit hole, [these notes](https://people.eecs.berkeley.edu/~klein/papers/lagrange-multipliers.pdf) give a great introduction from the perspective of the classical Lagrangian, without any scarring.
@@ -65,48 +65,48 @@ Now let's recast the SVM into a form suitable for the KKT theorem, and list the 
 The primal problem statement is 
 
 $$
-\min_{w, b} \frac{1}{2} \| \vec w \|^2
+\min_{w, b} \frac{1}{2} \| \mathbf w \|^2
 $$
 
 Subject to the constraints that all $m$ training points $x_1, \dots, x_m$ with training labels $y_1, \dots, y_m$ satisfy
 
 $$
-y_i( \vec w \cdot \vec x_i) \geq 1
+y_i( \mathbf w \cdot \mathbf x_i) \geq 1
 $$
 
 The generalized Lagrangian is
 
 $$
 \begin{aligned}
-L(\vec w, b, \vec \alpha) 
-    &= \frac{1}{2} \| \vec w \|^2 + \sum_{j=1}^m \alpha_j(1-y_j(\vec w \cdot \vec x_j + b)) \\ 
-    &= \frac{1}{2} \| \vec w \|^2 + \sum_{j=1}^m \alpha_j - \sum_{j=1}^m \alpha_j y_j(\vec w \cdot \vec x_j + b))
+L(\mathbf w, b, \mathbf \alpha) 
+    &= \frac{1}{2} \| \mathbf w \|^2 + \sum_{j=1}^m \alpha_j(1-y_j(\mathbf w \cdot \mathbf x_j + b)) \\ 
+    &= \frac{1}{2} \| \mathbf w \|^2 + \sum_{j=1}^m \alpha_j - \sum_{j=1}^m \alpha_j y_j(\mathbf w \cdot \mathbf x_j + b))
 \end{aligned}
 $$
 
-We can compute $\nabla L$ for each variable. First, the individual components $w_i$ of $\vec w$.
+We can compute $\nabla L$ for each variable. First, the individual components $w_i$ of $\mathbf w$.
 
 $$
 \frac{\partial L}{\partial w_i} = w_i - \sum_{j=1}^m \alpha_j y_j x_{j,i}
 $$ 
 
-Note that $x_{i,j}$ is the $i$-th component of the $j$-th training point $\vec x_j$, since this is the only part of the expression $\vec w \cdot \vec x_j$ that involves $w_i$.
+Note that $x_{i,j}$ is the $i$-th component of the $j$-th training point $\mathbf x_j$, since this is the only part of the expression $\mathbf w \cdot \mathbf x_j$ that involves $w_i$.
 
-Setting all these equal to zero means we require $\vec w = \sum_{j=1}^m \alpha_j y_j x_j$. This is interesting! The optimality criterion, that the gradient of the Lagrangian must be zero, actually shows us how to write the optimal solution $\vec w$ in terms of the Lagrange multipliers $\alpha_j$ and the training data/labels.
+Setting all these equal to zero means we require $\mathbf w = \sum_{j=1}^m \alpha_j y_j x_j$. This is interesting! The optimality criterion, that the gradient of the Lagrangian must be zero, actually shows us how to write the optimal solution $\mathbf w$ in terms of the Lagrange multipliers $\alpha_j$ and the training data/labels.
 
-You can also recover $b$ using a little trick. Suppose you found the optimal $\vec w$ (which can be expressed in terms of the Lagrange multipliers). Then since we have set this functional margin (the curbs of the street) to $1$ and $-1$ when we set up the problem, we can let $x_+$ be some point for which $\vec w \cdot \vec x_+ + b = +1$ and $x_-$ for $\vec w \cdot \vec x_- + b = -1$. We can equate these two (with a sign flip):
+You can also recover $b$ using a little trick. Suppose you found the optimal $\mathbf w$ (which can be expressed in terms of the Lagrange multipliers). Then since we have set this functional margin (the curbs of the street) to $1$ and $-1$ when we set up the problem, we can let $x_+$ be some point for which $\mathbf w \cdot \mathbf x_+ + b = +1$ and $x_-$ for $\mathbf w \cdot \mathbf x_- + b = -1$. We can equate these two (with a sign flip):
 
 $$
-\vec w \cdot \vec x_+ + b = 1 = -(\vec w \cdot \vec x_- + b)
+\mathbf w \cdot \mathbf x_+ + b = 1 = -(\mathbf w \cdot \mathbf x_- + b)
 $$ 
 
 Solving for $b$, we get
 
 $$
-b = -\frac{\vec w \cdot \vec x_- + \vec w \cdot \vec x_+}{2}
+b = -\frac{\mathbf w \cdot \mathbf x_- + \mathbf w \cdot \mathbf x_+}{2}
 $$
 
-This way we can express both the optimal $\vec w$ and $b$ just in terms of the input data and the Lagrange multipliers.
+This way we can express both the optimal $\mathbf w$ and $b$ just in terms of the input data and the Lagrange multipliers.
 
 Now we continue computing the gradient of the Lagrangian. For the term involving $b$:
 
@@ -117,17 +117,17 @@ $$
 For the LKKT multipliers, all we need are that the constraints of the primal are satisfied:
 
 $$
-\frac{\partial L}{\partial \alpha_j} = 1 - y_j(\vec w \cdot \vec x_j + b) \leq 0
+\frac{\partial L}{\partial \alpha_j} = 1 - y_j(\mathbf w \cdot \mathbf x_j + b) \leq 0
 $$
 
 The final condition of the KKT theorem says that one needs to have both feasibility of the dual:
 
 $$
-\alpha_j \geq 0 \textup{ for all } j
+\alpha_j \geq 0 \text{ for all } j
 $$
 
 And the complementary slackness conditions, 
 
 $$
-\alpha_j (1 - y_j(\vec w \cdot \vec x_j + b)) = 0 \textup{ for all } $j = 1, \dots, m$
+\alpha_j (1 - y_j(\mathbf w \cdot \mathbf x_j + b)) = 0 \text{ for all } $j = 1, \dots, m$
 $$
