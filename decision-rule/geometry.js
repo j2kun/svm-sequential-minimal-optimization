@@ -33,10 +33,15 @@ class Vector {
     return [arrowheadOffsetX, arrowheadOffsetY, angleDeg];
   }
 
+  normalized() {
+    let norm = Math.sqrt(this.x * this.x + this.y * this.y);
+    return new Vector(this.x / norm, this.y / norm);
+  }
+
   project(w) {
     // project this onto the input vector w
     let normW = Math.sqrt(innerProduct(w, w));
-    let normalizedW = new Vector(w.x / normW, w.y / normW);
+    let normalizedW = w.normalized();
     let signedLength = innerProduct(this, normalizedW);
 
     return new Vector(
@@ -53,23 +58,6 @@ class Hyperplane extends Vector {
     // either normalX or normalY must be nonzero
     super(normalX, normalY);
     this.b = offset;
-  }
-
-  normalized() {
-    let norm = Math.sqrt(this.x * this.x + this.y * this.y);
-    return new Vector(this.x / norm, this.y / norm);
-  }
-
-  normalVector() {
-    return new Vector(this.x, this.y);
-  }
-
-  normalAngleFromVertical() {
-    return Math.PI/2 - Math.atan2(this.y, this.x);
-  }
-
-  normalAngle() {
-    return Math.atan2(this.y, this.x);
   }
 
   spanningVector() {

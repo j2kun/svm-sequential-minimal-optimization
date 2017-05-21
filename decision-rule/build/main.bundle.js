@@ -52,11 +52,17 @@ var Vector = function () {
       return [arrowheadOffsetX, arrowheadOffsetY, angleDeg];
     }
   }, {
+    key: 'normalized',
+    value: function normalized() {
+      var norm = Math.sqrt(this.x * this.x + this.y * this.y);
+      return new Vector(this.x / norm, this.y / norm);
+    }
+  }, {
     key: 'project',
     value: function project(w) {
       // project this onto the input vector w
       var normW = Math.sqrt(innerProduct(w, w));
-      var normalizedW = new Vector(w.x / normW, w.y / normW);
+      var normalizedW = w.normalized();
       var signedLength = innerProduct(this, normalizedW);
 
       return new Vector(normalizedW.x * signedLength, normalizedW.y * signedLength);
@@ -86,27 +92,6 @@ var Hyperplane = function (_Vector) {
   }
 
   _createClass(Hyperplane, [{
-    key: 'normalized',
-    value: function normalized() {
-      var norm = Math.sqrt(this.x * this.x + this.y * this.y);
-      return new Vector(this.x / norm, this.y / norm);
-    }
-  }, {
-    key: 'normalVector',
-    value: function normalVector() {
-      return new Vector(this.x, this.y);
-    }
-  }, {
-    key: 'normalAngleFromVertical',
-    value: function normalAngleFromVertical() {
-      return Math.PI / 2 - Math.atan2(this.y, this.x);
-    }
-  }, {
-    key: 'normalAngle',
-    value: function normalAngle() {
-      return Math.atan2(this.y, this.x);
-    }
-  }, {
     key: 'spanningVector',
     value: function spanningVector() {
       // since this demo is in 2d, the hyerplane is just a line. spanningVector
