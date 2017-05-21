@@ -38,7 +38,9 @@ var Vector = function () {
   _createClass(Vector, [{
     key: 'toString',
     value: function toString() {
-      return '(' + this.x + ', ' + this.y + ', ' + (this.label > 0 ? '+' : '-') + '1)';
+      var roundedX = Math.round(this.x * 100) / 100;
+      var roundedY = Math.round(this.y * 100) / 100;
+      return '(' + roundedX + ', ' + roundedY + ')';
     }
   }, {
     key: 'arrowheadOffset',
@@ -171,8 +173,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 var width = 800;
 var height = 600;
-var svg = d3.select("body").append("svg").attr("width", width).attr("height", height);
-var unit = 40; // pixels per "unit" in the plotted plane
+var svg = d3.select("body").insert("svg", ":first-child").attr("width", width).attr("height", height);
 
 var originX = width / 2;
 var originY = height / 2;
@@ -277,6 +278,22 @@ function setupProjectionStyle(projectionSVG) {
   projectedArrowhead.style("fill", chooseProjectionColor).attr('d', triangleSymbol);
 }
 
+function setVectorText(vector, labelName) {
+  d3.select("#" + labelName + "-value").text(vector.toString());
+}
+
+function updateDecisonText(projected) {
+  var text = "opposite side";
+  d3.select("#projected-label").style("color", "red");
+  d3.select("#decision-label").style("color", "red");
+  if (projected.attr("stroke") == "green") {
+    text = "same side";
+    d3.select("#projected-label").style("color", "green");
+    d3.select("#decision-label").style("color", "green");
+  }
+  d3.select("#decision-value").text(text);
+}
+
 function setupBehavior(hyperplaneSVG, projectionSVG) {
   var spanning = hyperplaneSVG.spanning,
       normal = hyperplaneSVG.normal,
@@ -299,20 +316,23 @@ function setupBehavior(hyperplaneSVG, projectionSVG) {
     });
   }
 
-  function setPosition(svg) {
+  function setPosition(svg, labelName) {
     svg.attr("x2", function (d) {
       return fromCartesianX(d.x);
     }).attr("y2", function (d) {
       return fromCartesianY(d.y);
     });
+    setVectorText(svg.datum(), labelName);
   }
 
-  function setProjectedPosition(svg) {
-    svg.attr("x2", function (d) {
-      return fromCartesianX(d.vector.project(d.hyperplane).x);
-    }).attr("y2", function (d) {
-      return fromCartesianY(d.vector.project(d.hyperplane).y);
-    }).attr("stroke", chooseProjectionColor);
+  function setProjectedPosition(svg, labelName) {
+    var _svg$datum = svg.datum(),
+        vector = _svg$datum.vector,
+        hyperplane = _svg$datum.hyperplane;
+
+    var projection = vector.project(hyperplane);
+    svg.attr("x2", fromCartesianX(projection.x)).attr("y2", fromCartesianY(projection.y)).attr("stroke", chooseProjectionColor);
+    setVectorText(projection, labelName);
   }
 
   function setArrowheadPosition(svg) {
@@ -336,38 +356,40 @@ function setupBehavior(hyperplaneSVG, projectionSVG) {
     }).style("fill", chooseProjectionColor).style("stroke", chooseProjectionColor);
   }
 
-  function dragged(d, vector, arrowhead) {
+  function dragged(d, vector, arrowhead, labelName) {
     d.x += d3.event.dx;
     d.y -= d3.event.dy;
-    setPosition(vector);
+    setPosition(vector, labelName);
     setArrowheadPosition(arrowhead);
 
-    setProjectedPosition(projected);
+    setProjectedPosition(projected, 'projected');
     setProjectedArrowheadPosition(projectedArrowhead);
+    updateDecisonText(projected);
   }
 
   arrowhead.call(d3.drag().on("drag", function (d) {
-    dragged(d, normal, arrowhead);
+    dragged(d, normal, arrowhead, 'normal');
     setSpanningPosition(spanning);
   }));
 
   vectorArrowhead.call(d3.drag().on("drag", function (d) {
-    dragged(d, vector, vectorArrowhead);
+    dragged(d, vector, vectorArrowhead, 'vector');
   }));
 
-  setPosition(normal);
+  setPosition(normal, 'normal');
   setArrowheadPosition(arrowhead);
   setSpanningPosition(spanning);
 
-  setPosition(vector);
+  setPosition(vector, 'vector');
   setArrowheadPosition(vectorArrowhead);
 
-  setProjectedPosition(projected);
+  setProjectedPosition(projected, 'projected');
   setProjectedArrowheadPosition(projectedArrowhead);
+  updateDecisonText(projected);
 }
 
-var h = new _geometry.Hyperplane(unit, unit * 3 / 2, 0);
-var v = new _geometry.Vector(2 * unit, -unit * 1 / 2);
+var h = new _geometry.Hyperplane(80, 60, 0);
+var v = new _geometry.Vector(80, -10);
 var hyperplaneSVG = createHyperplaneSVG(h);
 var projectionSVG = createProjectionSVG(v, h);
 

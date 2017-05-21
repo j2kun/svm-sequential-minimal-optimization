@@ -20,7 +20,9 @@ class Vector {
   }
 
   toString() {
-    return `(${this.x}, ${this.y}, ${this.label > 0 ? '+': '-'}1)`;
+    let roundedX = Math.round(this.x * 100) / 100;
+    let roundedY = Math.round(this.y * 100) / 100;
+    return `(${roundedX}, ${roundedY})`;
   }
 
   arrowheadOffset() {

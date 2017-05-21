@@ -3,10 +3,9 @@ import { Vector, Hyperplane, innerProduct } from './geometry';
 
 let width = 800;
 let height = 600;
-let svg = d3.select("body").append("svg")
+let svg = d3.select("body").insert("svg", ":first-child")
                            .attr("width", width)
                            .attr("height", height);
-let unit = 40;  // pixels per "unit" in the plotted plane
 
 let originX = width / 2;
 let originY = height / 2;
@@ -101,6 +100,22 @@ function setupProjectionStyle(projectionSVG) {
 }
 
 
+function setVectorText(vector, labelName) {
+  d3.select("#" + labelName + "-value").text(vector.toString());
+}
+
+function updateDecisonText(projected) {
+  let text = "opposite side";
+  d3.select("#projected-label").style("color", "red");
+  d3.select("#decision-label").style("color", "red");
+  if (projected.attr("stroke") == "green") {
+    text = "same side";
+    d3.select("#projected-label").style("color", "green");
+    d3.select("#decision-label").style("color", "green");
+  }
+  d3.select("#decision-value").text(text);
+}
+
 function setupBehavior(hyperplaneSVG, projectionSVG) {
   let { spanning, normal, arrowhead } = hyperplaneSVG;
   let { vector, vectorArrowhead, projected, projectedArrowhead} = projectionSVG;
@@ -112,15 +127,19 @@ function setupBehavior(hyperplaneSVG, projectionSVG) {
        .attr("y2", function(d) { return fromCartesianY(d.spanningY2(width, height)); });
   }
 
-  function setPosition(svg) {
+  function setPosition(svg, labelName) {
     svg.attr("x2", function(d) { return fromCartesianX(d.x); })
        .attr("y2", function(d) { return fromCartesianY(d.y); });
+    setVectorText(svg.datum(), labelName);
   }
 
-  function setProjectedPosition(svg) {
-    svg.attr("x2", function(d) { return fromCartesianX(d.vector.project(d.hyperplane).x); })
-       .attr("y2", function(d) { return fromCartesianY(d.vector.project(d.hyperplane).y); })
+  function setProjectedPosition(svg, labelName) {
+    let { vector, hyperplane } = svg.datum();
+    let projection = vector.project(hyperplane);
+    svg.attr("x2", fromCartesianX(projection.x))
+       .attr("y2", fromCartesianY(projection.y))
        .attr("stroke", chooseProjectionColor);
+    setVectorText(projection, labelName);
   }
 
   function setArrowheadPosition(svg) {
@@ -146,38 +165,40 @@ function setupBehavior(hyperplaneSVG, projectionSVG) {
     .style("stroke", chooseProjectionColor);
   }
 
-  function dragged(d, vector, arrowhead) {
+  function dragged(d, vector, arrowhead, labelName) {
     d.x += d3.event.dx;
     d.y -= d3.event.dy;
-    setPosition(vector);
+    setPosition(vector, labelName);
     setArrowheadPosition(arrowhead);
 
-    setProjectedPosition(projected);
+    setProjectedPosition(projected, 'projected');
     setProjectedArrowheadPosition(projectedArrowhead);
+    updateDecisonText(projected);
   }
 
   arrowhead.call(d3.drag().on("drag", function(d) {
-    dragged(d, normal, arrowhead);
+    dragged(d, normal, arrowhead, 'normal');
     setSpanningPosition(spanning);
   }));
 
   vectorArrowhead.call(d3.drag().on("drag", function(d) {
-    dragged(d, vector, vectorArrowhead);
+    dragged(d, vector, vectorArrowhead, 'vector');
   }));
 
-  setPosition(normal);
+  setPosition(normal, 'normal');
   setArrowheadPosition(arrowhead);
   setSpanningPosition(spanning);
 
-  setPosition(vector);
+  setPosition(vector, 'vector');
   setArrowheadPosition(vectorArrowhead);
 
-  setProjectedPosition(projected);
+  setProjectedPosition(projected, 'projected');
   setProjectedArrowheadPosition(projectedArrowhead);
+  updateDecisonText(projected);
 }
 
-let h = new Hyperplane(unit, unit * 3 / 2, 0);
-let v = new Vector(2 * unit, -unit * 1 / 2);
+let h = new Hyperplane(80, 60, 0);
+let v = new Vector(80, -10);
 let hyperplaneSVG = createHyperplaneSVG(h);
 let projectionSVG = createProjectionSVG(v, h);
 
