@@ -13,9 +13,10 @@ Intall prerequisites
 ```
 npm install   # or yarn install
 npm install -g gulp
+gulp watch    # demo live updates when code changes
 ```
 
-Then open `index.html` in a web browser and drag around the arrowhead.
+Then open `index.html` in a web browser and drag around the arrowheads.
 
 ```
 open index.html
