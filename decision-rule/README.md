@@ -1,6 +1,10 @@
 # The Inner Product as a Decision Rule
 
-![hyperplane](images/example.png)
+[Associated blog post](https://jeremykun.com/2017/05/22/the-inner-product-as-a-decision-rule/)
+
+[![hyperplane](images/example.png)](http://j2kun.github.io/decision-rule/index.html)
+
+(Click the image above or [this link](http://j2kun.github.io/decision-rule/index.html) for a demo)
 
 # Setup for running on a local machine
 
