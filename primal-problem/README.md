@@ -1,6 +1,10 @@
 # Formulating the Support Vector Machine Optimization Problem
 
-![hyperplane](images/svm_solve_by_hand.gif)
+[Blog post](https://jeremykun.com/2017/06/05/formulating-the-support-vector-machine-optimization-problem/)
+
+[Demo](http://j2kun.github.io/svm-primal/index.html)
+
+[![hyperplane](images/svm_solve_by_hand.gif)](http://j2kun.github.io/svm-primal/index.html)
 
 # Setup for running on a local machine
 
