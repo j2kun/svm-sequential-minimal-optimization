@@ -21,138 +21,158 @@ def evaluate(alphas, bias, points, labels, input_point):
     )
 
 
-def clip_if_needed(alpha2, current_alphas, labels, C):
-    '''
-        Compute the allowed bounds for alpha2, which corresponds
-        to the box constraints 0 <= alpha2 <= C combined with the
-        linear equality constraint.
+class TwoVariableSubproblem(object):
+    def __init__(self, chosen_indices, alphas, bias, points, labels, C):
+        self.dimension = len(points[0])
 
-        Return the new, possibly clipped value of alpha2.
-    '''
-    y1, y2 = labels
-    alpha1_cur, alpha2_cur = current_alphas
+        # store all the original values, needed for evaluating <w, x>
+        self.alphas = alphas
+        self.bias = bias
+        self.points = points
+        self.labels = labels
+        self.C = C
 
-    if y1 == y2:
-        lower = max(0, alpha2_cur - alpha1_cur)
-        upper = min(C, C + alpha2_cur - alpha1_cur)
-    else:
-        lower = max(0, alpha2_cur + alpha1_cur - C)
-        upper = min(C, alpha2_cur + alpha1_cur)
+        # store the particular values for the chosen variables
+        self.indices = chosen_indices
+        self.chosen_alphas = [alphas[i] for i in chosen_indices]
+        self.chosen_points = [points[i] for i in chosen_indices]
+        self.chosen_labels = [labels[i] for i in chosen_indices]
 
-    if lower < alpha2 < upper:
-        return alpha2
-    else:
-        if alpha2 >= upper:
-            return upper
-        else:
-            return lower
+        # precompute dot products
+        self.x1_dot_x1 = dot_product(self.chosen_points[0], self.chosen_points[0])
+        self.x2_dot_x2 = dot_product(self.chosen_points[1], self.chosen_points[1])
+        self.x1_dot_x2 = dot_product(self.chosen_points[0], self.chosen_points[1])
 
-
-def optimize_two(chosen_indices, alphas, bias, points, labels, C):
-    '''
+    def optimize(self):
+        '''
         Analytically solve the two-point subproblem. This corresponds to
         the single formula from the blog post:
 
             alpha_2^OPT = alpha_2^CURRENT + ...
 
-        Input:
-            chosen_indices: tuple of two integers, index of chosen multipliers in alphas
-            alphas: the current value of all the dual variables
-            points: the training points (x_i in the blog post)
-            labels: the training labels (y_i in the blog post)
+        along with the recomputation of the bias. This method sets two new
+        attributes on self:
 
-        Output:
-            tuple of length three:
-                - optimized value of first variable
-                - optimized value of second variable
-    '''
-    dimension = len(points[0])
-    chosen_alphas = [alphas[i] for i in chosen_indices]
-    chosen_points = [points[i] for i in chosen_indices]
-    chosen_labels = [labels[i] for i in chosen_indices]
+            - optimized_alphas: a copy of alphas, but with the optimized values
+              of the two variables in place of their old values.
+            - optimized_bias: the recomputed bias
+        '''
+        evaluated_points = [
+            evaluate(self.alphas, self.bias, self.points, self.labels, chosen_point)
+            for chosen_point in self.chosen_points
+        ]
 
-    x1_dot_x1 = dot_product(chosen_points[0], chosen_points[0])
-    x2_dot_x2 = dot_product(chosen_points[1], chosen_points[1])
-    x1_dot_x2 = dot_product(chosen_points[0], chosen_points[1])
+        y1, y2 = self.chosen_labels
+        optimized_numerator = y1 * (
+            evaluated_points[0] - y1 + evaluated_points[1] - y2
+        )
+        optimized_denominator = self.x1_dot_x1 + self.x2_dot_x2 - 2 * self.x1_dot_x2
+        optimized_alpha_2 = (
+            self.chosen_alphas[1] + optimized_numerator / optimized_denominator
+        )
 
-    evaluated_points = [
-        evaluate(alphas, bias, points, labels, chosen_point)
-        for chosen_point in chosen_points
-    ]
+        # clip to 0 <= alpha <= C
+        optimized_alpha_2 = self.clip_if_needed(optimized_alpha_2)
 
-    optimized_numerator = chosen_labels[1] * (
-        evaluated_points[0] - chosen_labels[0] +
-        evaluated_points[1] - chosen_labels[1]
-    )
-    optimized_denominator = x1_dot_x1 + x2_dot_x2 - 2 * x1_dot_x2
-    optimized_second_variable = (
-        chosen_alphas[1] + optimized_numerator / optimized_denominator
-    )
+        # This could be more efficient by doing this computation inside evaulate() /shrug
+        # Solve the linear constraint alpha_1 y_1 + alpha_2 y_2 = -sum_{j=3}^m alpha_j y_j
+        # for alpha_1
+        optimized_alpha_1 = self.chosen_labels[0] * (
+            -sum(
+                self.alphas[i] * self.labels[i] for i in range(self.dimension)
+                if i not in self.chosen_indices
+            ) - self.chosen_labels[1] * optimized_alpha_2
+        )
 
-    # clip to 0 <= alpha <= C
-    optimized_second_variable = clip_if_needed(
-        optimized_second_variable, chosen_alphas, chosen_labels, C
-    )
+        new_alphas = [optimized_alpha_1, optimized_alpha_2]
+        self.optimized_alphas = [x for x in self.alphas]
+        for index, alpha in zip(self.chosen_indices, new_alphas):
+            self.optimized_alphas[index] = alpha
 
-    # this could be more efficient at the cost of the sum being computed
-    # inside of evaluate(). This is just solving the linear constraint
-    # alpha_1 y_1 + alpha_2 y_2 = -sum_{j=3}^m alpha_j y_j
-    optimized_first_variable = chosen_labels[0] * (
-        -sum(
-            alphas[i] * labels[i] for i in range(dimension)
-            if i not in chosen_indices
-        ) - chosen_labels[1] * optimized_second_variable
-    )
+        self.optimized_bias = self.recompute_bias(self.chosen_alphas, new_alphas)
 
-    return optimized_first_variable, optimized_second_variable
+        return self
+
+    def clip_if_needed(self, alpha2):
+        '''
+            Compute the allowed bounds for alpha2, which corresponds
+            to the box constraints 0 <= alpha2 <= C combined with the
+            linear equality constraint.
+
+            Return the new, possibly clipped value of alpha2.
+        '''
+        y1, y2 = self.chosen_labels
+        alpha1_cur, alpha2_cur = self.chosen_alphas
+
+        if y1 == y2:
+            lower = max(0, alpha2_cur - alpha1_cur)
+            upper = min(self.C, self.C + alpha2_cur - alpha1_cur)
+        else:
+            lower = max(0, alpha2_cur + alpha1_cur - self.C)
+            upper = min(self.C, alpha2_cur + alpha1_cur)
+
+        if lower < alpha2 < upper:
+            return alpha2
+        else:
+            if alpha2 >= upper:
+                return upper
+            else:
+                return lower
+
+    def recompute_bias(self, old_alphas, new_alphas):
+        '''
+            Recompute the bias b. Return the value of the new bias.
+        '''
+        x1, x2 = self.chosen_points
+        y1, y2 = self.chosenl_labels
+        w_dot_x1 = evaluate(self.optimized_alphas, 0, self.points, self.labels, x1)
+        w_dot_x2 = evaluate(self.optimized_alphas, 0, self.points, self.labels, x2)
+
+        alpha_diffs = (old_alphas[0] - new_alphas[0]), (old_alphas[1] - new_alphas[1])
+        b1 = (
+            y1 * alpha_diffs[0] * self.x1_dot_x1 +
+            y2 * alpha_diffs[1] * self.x1_dot_x2
+        ) - w_dot_x1 + y1
+
+        b2 = (
+            y1 * alpha_diffs[0] * self.x1_dot_x2 +
+            y2 * alpha_diffs[1] * self.x2_dot_x2
+        ) - w_dot_x2 + y2
+
+        if 0 < new_alphas[0] < self.C:
+            return b1  # equal to b2, or we are forced to pick it
+        elif 0 < new_alphas[1] < self.C:
+            return b2
+        else:
+            return (b1 + b2) / 2
+
+    @staticmethod
+    def create_from_heuristic(alphas, bias, points, labels):
+        '''
+            Choose two variables to optimize next. This is a heuristic.
+
+            Return an instance of TwoVariableSubproblem
+        '''
+        pass
 
 
-def choose_two(alphas, bias, points, labels):
-    '''
-        Choose two variables to optimize next. This is a heuristic.
-    '''
-    pass
-
-
-def some_kkt_fails(alphas, bias, points, labels):
+def some_kkt_fails(alphas, bias, points, labels, C):
     '''
         Return true if some KKT condition is violated.
 
         The stopping condition for SMO is that every KKT condition
         is satisfied.
     '''
-    pass
+    for alpha, point, label in zip(alphas, points, labels):
+        value = evaluate(alphas, bias, points, labels, point)
+        if alpha == 0 and value < 1:
+            return True
+        if alpha == C and value > 1:
+            return True
+        if 0 < alpha < C and value != 1:
+            return True
 
-
-def recompute_bias(chosen_indices, old_alphas, new_alphas, optimized_alphas, points, labels, C):
-    '''
-        Recompute the bias b after each iteration
-    '''
-    chosen_points = [points[i] for i in chosen_indices]
-    chosen_labels = [labels[i] for i in chosen_indices]
-    w_dot_x1 = evaluate(optimized_alphas, 0, points, labels, chosen_points[0])
-    w_dot_x2 = evaluate(optimized_alphas, 0, points, labels, chosen_points[1])
-    x1_dot_x1 = dot_product(chosen_points[0], chosen_points[0])
-    x1_dot_x2 = dot_product(chosen_points[0], chosen_points[1])
-    x2_dot_x2 = dot_product(chosen_points[1], chosen_points[1])
-
-    alpha_diffs = (old_alphas[0] - new_alphas[0]), (old_alphas[1] - new_alphas[1])
-    b1 = (
-        chosen_labels[0] * alpha_diffs[0] * x1_dot_x1 +
-        chosen_labels[1] * alpha_diffs[1] * x1_dot_x2
-    ) - w_dot_x1 + chosen_labels[0]
-
-    b2 = (
-        chosen_labels[0] * alpha_diffs[0] * x1_dot_x2 +
-        chosen_labels[1] * alpha_diffs[1] * x2_dot_x2
-    ) - w_dot_x2 + chosen_labels[1]
-
-    if 0 < new_alphas[0] < C:
-        return b1  # equal to b2, or we are forced to pick it
-    elif 0 < new_alphas[1] < C:
-        return b2
-    else:
-        return (b1 + b2) / 2
+    return False
 
 
 def sequential_minimal_optimization(points, labels):
@@ -161,17 +181,9 @@ def sequential_minimal_optimization(points, labels):
     bias = 1
 
     while some_kkt_fails(alphas, bias, points, labels):
-        chosen_indices = choose_two(alphas, bias, points, labels)
-        optimized_alphas = optimize_two(
-            chosen_indices, alphas, bias, points, labels
-        )
-        old_alphas = []
-        for i, new_alpha in zip(chosen_indices, optimized_alphas):
-            old_alphas.append(alphas[i])
-            alphas[i] = new_alpha
-
-        bias = recompute_bias(
-            chosen_indices, old_alphas, optimized_alphas, alphas, points, labels
-        )
+        subproblem = TwoVariableSubproblem.create_from_heuristic()
+        subproblem.optimize()
+        alphas = subproblem.optimized_alphas
+        bias = subproblem.optimized_bias
 
     return alphas, bias
