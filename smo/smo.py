@@ -1,3 +1,11 @@
+import random
+import statistics
+
+
+def normalize(w):
+    the_norm = sum(wi**2 for wi in w)**0.5
+    return [wi / the_norm for wi in w]
+
 
 def dot_product(x, y):
     '''
@@ -14,14 +22,23 @@ def evaluate(alphas, bias, points, labels, input_point):
         evaluate <w, input_point> + b, where w is computed
         in terms of the dual variables sum(alpha_i y_i x_i)
     '''
-    dimension = len(points[0])
     return bias + sum(
-        alphas[j] * labels[j] * dot_product(points[j], input_point)
-        for j in range(dimension)
+        alpha * y * dot_product(x, input_point)
+        for (alpha, x, y) in zip(alphas, points, labels)
     )
 
 
 class TwoVariableSubproblem(object):
+    '''
+        A class representing the two-variable subproblem of the SMO algorithm.
+        The caller provides all of the data from the original optimization problem,
+        along with a choice of two indices. We denote these internally as
+        chosen_alphas and in formlulas as alpha_1, alpha_2.
+
+        The constructor is never called externally by this implementation, but
+        rather through the static method create_from_heuristic, which selects
+        the indices to optimize according to a heuristic.
+    '''
     def __init__(self, chosen_indices, alphas, bias, points, labels, C):
         self.dimension = len(points[0])
 
@@ -43,6 +60,9 @@ class TwoVariableSubproblem(object):
         self.x2_dot_x2 = dot_product(self.chosen_points[1], self.chosen_points[1])
         self.x1_dot_x2 = dot_product(self.chosen_points[0], self.chosen_points[1])
 
+    def __repr__(self):
+        return 'Subproblem(α_%d, α_%d)'.format(self.indices[0], self.indices[1])
+
     def optimize(self):
         '''
         Analytically solve the two-point subproblem. This corresponds to
@@ -56,6 +76,13 @@ class TwoVariableSubproblem(object):
             - optimized_alphas: a copy of alphas, but with the optimized values
               of the two variables in place of their old values.
             - optimized_bias: the recomputed bias
+
+        The algorithm itself has three steps outlined in the blog post:
+
+            - Evaluate the optimal alphas in the presence of no bounding box
+              0 <= alpha <= C
+            - Possibly clip the optimal values to the bounding box
+            - Compute the new bias term (offset of the hyperplane)
         '''
         evaluated_points = [
             evaluate(self.alphas, self.bias, self.points, self.labels, chosen_point)
@@ -74,24 +101,23 @@ class TwoVariableSubproblem(object):
         # clip to 0 <= alpha <= C
         optimized_alpha_2 = self.clip_if_needed(optimized_alpha_2)
 
-        # This could be more efficient by doing this computation inside evaulate() /shrug
         # Solve the linear constraint alpha_1 y_1 + alpha_2 y_2 = -sum_{j=3}^m alpha_j y_j
         # for alpha_1
+        #
+        # This could be more efficient by doing this computation inside evaulate() /shrug
         optimized_alpha_1 = self.chosen_labels[0] * (
             -sum(
                 self.alphas[i] * self.labels[i] for i in range(self.dimension)
-                if i not in self.chosen_indices
+                if i not in self.indices
             ) - self.chosen_labels[1] * optimized_alpha_2
         )
 
         new_alphas = [optimized_alpha_1, optimized_alpha_2]
         self.optimized_alphas = [x for x in self.alphas]
-        for index, alpha in zip(self.chosen_indices, new_alphas):
+        for index, alpha in zip(self.indices, new_alphas):
             self.optimized_alphas[index] = alpha
 
         self.optimized_bias = self.recompute_bias(self.chosen_alphas, new_alphas)
-
-        return self
 
     def clip_if_needed(self, alpha2):
         '''
@@ -124,7 +150,7 @@ class TwoVariableSubproblem(object):
             Recompute the bias b. Return the value of the new bias.
         '''
         x1, x2 = self.chosen_points
-        y1, y2 = self.chosenl_labels
+        y1, y2 = self.chosen_labels
         w_dot_x1 = evaluate(self.optimized_alphas, 0, self.points, self.labels, x1)
         w_dot_x2 = evaluate(self.optimized_alphas, 0, self.points, self.labels, x2)
 
@@ -147,13 +173,13 @@ class TwoVariableSubproblem(object):
             return (b1 + b2) / 2
 
     @staticmethod
-    def create_from_heuristic(alphas, bias, points, labels):
+    def create_from_heuristic(alphas, bias, points, labels, C):
         '''
             Choose two variables to optimize next. This is a heuristic.
 
             Return an instance of TwoVariableSubproblem
         '''
-        pass
+        return TwoVariableSubproblem([0, 1], alphas, bias, points, labels, C)
 
 
 def some_kkt_fails(alphas, bias, points, labels, C):
@@ -175,15 +201,77 @@ def some_kkt_fails(alphas, bias, points, labels, C):
     return False
 
 
-def sequential_minimal_optimization(points, labels):
-    dimension = len(points[0])
-    alphas = [1] * len(dimension)
+def sequential_minimal_optimization(points, labels, C=2):
+    alphas = [random.uniform(0, 1) for _ in range(len(points))]
     bias = 1
 
-    while some_kkt_fails(alphas, bias, points, labels):
-        subproblem = TwoVariableSubproblem.create_from_heuristic()
+    while some_kkt_fails(alphas, bias, points, labels, C):
+        subproblem = TwoVariableSubproblem.create_from_heuristic(
+            alphas, bias, points, labels, C
+        )
         subproblem.optimize()
         alphas = subproblem.optimized_alphas
         bias = subproblem.optimized_bias
 
     return alphas, bias
+
+
+def sample_data(h, xRange=(-100, 100), yRange=(-100, 100), sample_size=100):
+    '''
+        Generate some sample data lying on either side of an input hyperplane.
+        The input h is a normal vector to a hyperplane
+    '''
+
+    sample = []
+
+    for _ in range(sample_size):
+        unlabeledPoint = [random.uniform(*xRange), random.uniform(*yRange)]
+        if dot_product(unlabeledPoint, h) >= 0:
+            label = 1
+        else:
+            label = -1
+
+        sample.append((unlabeledPoint, label))
+
+    return sample
+
+
+def compute_hypothesis(alphas, points, labels):
+    '''
+        If alphas represent the dual variables to the SMO problem,
+        then the hypothesis is w = sum(alpha_i * y_i * x_i), the normal
+        vector to the proposed separating hyperplane.
+
+        Return this w
+    '''
+    dim = len(points[0])
+    scaled_points = [
+        [x_i * alpha * y for x_i in x]
+        for (alpha, x, y) in zip(alphas, points, labels)
+    ]
+    return [sum(x[i] for x in scaled_points) for i in range(dim)]
+
+
+def accuracy(hypothesis, bias, points, labels):
+    # compute the accuracy of the hypothesis
+    correct = [
+        1 if (bias + dot_product(hypothesis, x)) * y > 0 else 0
+        for (x, y) in zip(points, labels)
+    ]
+
+    return sum(correct) / len(points)
+
+
+if __name__ == "__main__":
+    w = normalize([random.random(), random.random()])
+    points, labels = zip(*sample_data(w))
+
+    us = []
+    for i in range(100):
+        alphas = [random.uniform(0, 1) for _ in range(len(points))]
+        u = normalize(compute_hypothesis(alphas, points, labels))
+        us.append(u)
+
+    dotprods = [dot_product(w, u) for u in us]
+    print(statistics.mean(dotprods))
+    print(statistics.stdev(dotprods))
