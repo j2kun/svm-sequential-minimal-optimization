@@ -59,13 +59,3 @@ def accuracy(hypothesis, bias, points, labels):
 if __name__ == "__main__":
     w = normalize([random.random(), random.random()])
     points, labels = zip(*sample_data(w))
-
-    us = []
-    for i in range(100):
-        alphas = [random.uniform(0, 1) for _ in range(len(points))]
-        u = normalize(compute_hypothesis(alphas, points, labels))
-        us.append(u)
-
-    dotprods = [dot_product(w, u) for u in us]
-    print(statistics.mean(dotprods))
-    print(statistics.stdev(dotprods))
