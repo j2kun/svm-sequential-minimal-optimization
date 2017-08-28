@@ -19,7 +19,7 @@ def sample_data(h, xRange=(-100, 100), yRange=(-100, 100), sample_size=100):
     sample = []
 
     for _ in range(sample_size):
-        unlabeledPoint = [random.uniform(*xRange), random.uniform(*yRange)]
+        unlabeledPoint = (random.uniform(*xRange), random.uniform(*yRange))
         if dot_product(unlabeledPoint, h) >= 0:
             label = 1
         else:
@@ -40,22 +40,25 @@ def compute_hypothesis(alphas, points, labels):
     '''
     dim = len(points[0])
     scaled_points = [
-        [x_i * alpha * y for x_i in x]
+        (x_i * alpha * y for x_i in x)
         for (alpha, x, y) in zip(alphas, points, labels)
     ]
-    return [sum(x[i] for x in scaled_points) for i in range(dim)]
+    return (sum(x[i] for x in scaled_points) for i in range(dim))
 
 
 def accuracy(hypothesis, bias, points, labels):
     # compute the accuracy of the hypothesis
-    correct = [
+    correct = (
         1 if (bias + dot_product(hypothesis, x)) * y > 0 else 0
         for (x, y) in zip(points, labels)
-    ]
+    )
 
     return sum(correct) / len(points)
 
 
 if __name__ == "__main__":
-    w = normalize([random.random(), random.random()])
+    from smo import *
+    w = normalize((random.random(), random.random()))
     points, labels = zip(*sample_data(w))
+
+    svm = SVM(points, labels)

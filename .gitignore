@@ -3,3 +3,6 @@ js/build
 js/yarn.lock
 
 *DS_Store*
+
+*__pycache__*
+*venv*

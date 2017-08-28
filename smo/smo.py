@@ -45,17 +45,19 @@ class TwoVariableSubproblem(object):
 
         # store the particular values for the chosen variables
         self.indices = chosen_indices
-        self.chosen_alphas = [alphas[i] for i in chosen_indices]
-        self.chosen_points = [points[i] for i in chosen_indices]
-        self.chosen_labels = [labels[i] for i in chosen_indices]
+        self.chosen_alphas = tuple(alphas[i] for i in chosen_indices)
+        self.chosen_points = tuple(points[i] for i in chosen_indices)
+        self.chosen_labels = tuple(labels[i] for i in chosen_indices)
 
         # precompute dot products
         self.x1_dot_x1 = dot_product(self.chosen_points[0], self.chosen_points[0])
         self.x2_dot_x2 = dot_product(self.chosen_points[1], self.chosen_points[1])
         self.x1_dot_x2 = dot_product(self.chosen_points[0], self.chosen_points[1])
 
+        self.error_tolerance = 1e-4
+
     def __repr__(self):
-        return 'Subproblem(α_%d, α_%d)'.format(self.indices[0], self.indices[1])
+        return 'Subproblem(α_{}, α_{})'.format(self.indices[0], self.indices[1])
 
     def optimize(self):
         '''
@@ -106,12 +108,13 @@ class TwoVariableSubproblem(object):
             ) - self.chosen_labels[1] * optimized_alpha_2
         )
 
-        new_alphas = [optimized_alpha_1, optimized_alpha_2]
+        new_alphas = (optimized_alpha_1, optimized_alpha_2)
         self.optimized_alphas = [x for x in self.alphas]
         for index, alpha in zip(self.indices, new_alphas):
             self.optimized_alphas[index] = alpha
 
         self.optimized_bias = self.recompute_bias(self.chosen_alphas, new_alphas)
+        return self
 
     def clip_if_needed(self, alpha2):
         '''
@@ -166,45 +169,117 @@ class TwoVariableSubproblem(object):
         else:
             return (b1 + b2) / 2
 
-    @staticmethod
-    def create_from_heuristic(alphas, bias, points, labels, C):
+
+class SVM(object):
+    def __init__(self, points, labels, C=2, alphas=None, bias=None):
+        self.points = points
+        self.labels = labels
+        self.C = C
+        self.error_tolerance = 1e-3
+
+        self.alphas = alphas or tuple(random.uniform(0, 1) for _ in range(len(points)))
+        self.bias = bias or 1
+
+        # reset cache
+        self.eligible_indices = []
+        self.eligible_indices_nonbound = []
+
+    def evaluate(self, input_point):
+        return evaluate(self.alphas, self.bias, self.points, self.labels, input_point)
+
+    def select_indices(self):
+        if not self.eligible_indices_nonbound:
+            self.eligible_indices = set(
+                i for i in range(len(self.alphas)) if self.kkt_fails(i)
+            )
+
+            if not self.eligible_indices:
+                raise Exception("Done!")
+
+        self.eligible_indices_nonbound = set(
+            i for i in self.eligible_indices
+            if not self.bound_at(i)
+        )
+
+        if not self.eligible_indices_nonbound:
+            random.shuffle(self.eligible_indices)
+            i1 = self.eligible_indices.pop()
+            i2 = self.eligible_indices.pop()
+        else:
+            def error(j):
+                # this is the E function from [Platt 98]
+                return self.evaluate(self.points[j]) - self.labels[j]
+
+            i1 = self.eligible_indices_nonbound.pop()
+            i2 = max(self.eligible_indices, key=lambda j: abs(error(i1) - error(j)))
+            self.eligible_indices_nonbound.discard(i2)
+            self.eligible_indices.discard(i2)
+
+        return i1, i2
+
+    def create_from_heuristic(self):
         '''
             Choose two variables to optimize next. This is a heuristic.
 
             Return an instance of TwoVariableSubproblem
         '''
-        return TwoVariableSubproblem([0, 1], alphas, bias, points, labels, C)
-
-
-def some_kkt_fails(alphas, bias, points, labels, C):
-    '''
-        Return true if some KKT condition is violated.
-
-        The stopping condition for SMO is that every KKT condition
-        is satisfied.
-    '''
-    for alpha, point, label in zip(alphas, points, labels):
-        value = evaluate(alphas, bias, points, labels, point)
-        if alpha == 0 and value < 1:
-            return True
-        if alpha == C and value > 1:
-            return True
-        if 0 < alpha < C and value != 1:
-            return True
-
-    return False
-
-
-def sequential_minimal_optimization(points, labels, C=2):
-    alphas = [random.uniform(0, 1) for _ in range(len(points))]
-    bias = 1
-
-    while some_kkt_fails(alphas, bias, points, labels, C):
-        subproblem = TwoVariableSubproblem.create_from_heuristic(
-            alphas, bias, points, labels, C
+        return TwoVariableSubproblem(
+            self.select_indices(), self.alphas, self.bias, self.points,
+            self.labels, self.C
         )
-        subproblem.optimize()
-        alphas = subproblem.optimized_alphas
-        bias = subproblem.optimized_bias
 
-    return alphas, bias
+    def bound_at(self, index):
+        '''
+            Determine if a KKT multiplier is "bound", i.e., if it is equal
+            to 0 or C (up to error tolerance)
+        '''
+        ε = self.error_tolerance  # unicode, shazam!
+        return abs(self.alphas[index]) < ε or abs(self.alphas[index] - self.C) < ε
+
+    def kkt_fails(self, index):
+        '''
+            Determine if the point at `index` violates the KKT condition to within
+            a given error tolerance.
+        '''
+        value = self.evaluate(self.points[index]) * self.labels[index]
+        ε = self.error_tolerance
+        if abs(self.alphas[index]) > ε and value < 1 - ε:
+            return True
+        if abs(self.alphas[index] - self.C) > ε and value > 1 - ε:
+            return True
+        if ε < self.alphas[index] < self.C - ε and abs(value - 1) > ε:
+            return True
+
+        return False
+
+    def some_kkt_fails(self):
+        '''
+            Return true if some KKT condition is violated.
+
+            The stopping condition for SMO is that every KKT condition
+            is satisfied.
+        '''
+        return any(self.kkt_fails(index) for index in range(len(self.alphas)))
+
+    def update(self, subproblem):
+        '''
+            Update the internal representation of the SVM
+        '''
+        self.alphas = subproblem.optimized_alphas
+        self.bias = subproblem.optimized_bias
+
+def sequential_minimal_optimization(points, labels):
+    svm = SVM(points, labels)
+    iteration_count = 0
+    def error(j):
+        return abs(svm.evaluate(points[j]) - labels[j])
+
+    while svm.some_kkt_fails():
+        subproblem = svm.create_from_heuristic()
+        svm.update(subproblem.optimize())
+        iteration_count += 1
+        if iteration_count % 100 == 0:
+            max_kkt_violation = max(error(j) for j in range(len(points)))
+            print("Iteration {}, max_kkt_violation={}".format(iteration_count, max_kkt_violation))
+
+    return svm
