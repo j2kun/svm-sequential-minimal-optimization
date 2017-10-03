@@ -1,8 +1,13 @@
-import statistics
 import random
 
 import smo
 from smo import dot_product
+
+
+def test_():
+    w = normalize((random.random(), random.random()))
+    points, labels = zip(*sample_data(w))
+    svm = smo.SVM(points, labels)
 
 
 def normalize(w):
@@ -54,11 +59,3 @@ def accuracy(hypothesis, bias, points, labels):
     )
 
     return sum(correct) / len(points)
-
-
-if __name__ == "__main__":
-    from smo import *
-    w = normalize((random.random(), random.random()))
-    points, labels = zip(*sample_data(w))
-
-    svm = SVM(points, labels)
