@@ -4,10 +4,10 @@ import smo
 from smo import dot_product
 
 
-def test_():
+def test_constructor():
     w = normalize((random.random(), random.random()))
     points, labels = zip(*sample_data(w))
-    svm = smo.SVM(points, labels)
+    smo.SVM(points, labels)
 
 
 def normalize(w):
@@ -33,29 +33,3 @@ def sample_data(h, xRange=(-100, 100), yRange=(-100, 100), sample_size=100):
         sample.append((unlabeledPoint, label))
 
     return sample
-
-
-def compute_hypothesis(alphas, points, labels):
-    '''
-        If alphas represent the dual variables to the SMO problem,
-        then the hypothesis is w = sum(alpha_i * y_i * x_i), the normal
-        vector to the proposed separating hyperplane.
-
-        Return this w
-    '''
-    dim = len(points[0])
-    scaled_points = [
-        (x_i * alpha * y for x_i in x)
-        for (alpha, x, y) in zip(alphas, points, labels)
-    ]
-    return (sum(x[i] for x in scaled_points) for i in range(dim))
-
-
-def accuracy(hypothesis, bias, points, labels):
-    # compute the accuracy of the hypothesis
-    correct = (
-        1 if (bias + dot_product(hypothesis, x)) * y > 0 else 0
-        for (x, y) in zip(points, labels)
-    )
-
-    return sum(correct) / len(points)

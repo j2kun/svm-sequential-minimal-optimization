@@ -268,9 +268,11 @@ class SVM(object):
         self.alphas = subproblem.optimized_alphas
         self.bias = subproblem.optimized_bias
 
+
 def sequential_minimal_optimization(points, labels):
     svm = SVM(points, labels)
     iteration_count = 0
+
     def error(j):
         return abs(svm.evaluate(points[j]) - labels[j])
 
