@@ -30,7 +30,7 @@ class TwoVariableSubproblem(object):
         chosen_alphas and in formlulas as alpha_1, alpha_2.
 
         The constructor is never called externally by this implementation, but
-        rather through the static method create_from_heuristic, which selects
+        rather through the static method create_subproblem_from_heuristic, which selects
         the indices to optimize according to a heuristic.
     '''
     def __init__(self, chosen_indices, alphas, bias, points, labels, C):
@@ -211,13 +211,14 @@ class SVM(object):
                 return self.evaluate(self.points[j]) - self.labels[j]
 
             i1 = self.eligible_indices_nonbound.pop()
-            i2 = max(self.eligible_indices, key=lambda j: abs(error(i1) - error(j)))
+            i2 = max(self.eligible_indices,
+                     key=lambda j: abs(error(i1) - error(j)))
             self.eligible_indices_nonbound.discard(i2)
             self.eligible_indices.discard(i2)
 
         return i1, i2
 
-    def create_from_heuristic(self):
+    def create_subproblem_from_heuristic(self):
         '''
             Choose two variables to optimize next. This is a heuristic.
 
@@ -243,9 +244,9 @@ class SVM(object):
         '''
         value = self.evaluate(self.points[index]) * self.labels[index]
         ε = self.error_tolerance
-        if abs(self.alphas[index]) > ε and value < 1 - ε:
+        if abs(self.alphas[index]) < ε and abs(value - 1) < ε:
             return True
-        if abs(self.alphas[index] - self.C) > ε and value > 1 - ε:
+        if abs(self.alphas[index] - self.C) > ε and abs(value - 1) > ε:
             return True
         if ε < self.alphas[index] < self.C - ε and abs(value - 1) > ε:
             return True
@@ -277,7 +278,7 @@ def sequential_minimal_optimization(points, labels):
         return abs(svm.evaluate(points[j]) - labels[j])
 
     while svm.some_kkt_fails():
-        subproblem = svm.create_from_heuristic()
+        subproblem = svm.create_subproblem_from_heuristic()
         svm.update(subproblem.optimize())
         iteration_count += 1
         if iteration_count % 100 == 0:

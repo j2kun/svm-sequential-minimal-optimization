@@ -6,3 +6,4 @@ js/yarn.lock
 
 *__pycache__*
 *venv*
+*.cache*
