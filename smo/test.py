@@ -100,6 +100,11 @@ def test_two_variable_subproblem():
         [i1, i2], alphas, bias, points, labels, C
     )
 
+    assert subproblem.indices == (1, 0)
+    assert subproblem.chosen_alphas == (alphas[1], alphas[0])
+    assert subproblem.chosen_points == (points[1], points[0])
+    assert subproblem.chosen_labels == (labels[1], labels[0])
+
 
 def norm(w):
     return sum(wi**2 for wi in w)**0.5

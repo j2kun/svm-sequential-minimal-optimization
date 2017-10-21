@@ -44,7 +44,7 @@ class TwoVariableSubproblem(object):
         self.C = C
 
         # store the particular values for the chosen variables
-        self.indices = chosen_indices
+        self.indices = tuple(chosen_indices)
         self.chosen_alphas = tuple(alphas[i] for i in chosen_indices)
         self.chosen_points = tuple(points[i] for i in chosen_indices)
         self.chosen_labels = tuple(labels[i] for i in chosen_indices)
